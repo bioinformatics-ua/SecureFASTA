@@ -40,7 +40,7 @@ $ python main.py --decrypt --input-file secure_fasta.txt --output-file output.fa
 ```
 ## Cite
 
-Please cite the following, if you use COMPACT in your work:
+Please cite the following, if you use SecureFASTA in your work:
 
 ```bib
 todo
