@@ -2,6 +2,14 @@
 
 SecureFASTA is a Python script that allows you to encrypt and decrypt FASTA files using AES encryption and Elliptic Curve Cryptography (ECC).
 
+## Team
+  * Jorge M. Silva<sup id="a1">[1](#f1)</sup>
+  * João R. Almeida<sup id="a1">[1](#f1)</sup><sup id="a2">[2](#f2)</sup>
+
+1. <small id="f1"> University of Aveiro, Dept. Electronics, Telecommunications and Informatics (DETI / IEETA), Aveiro, Portugal </small> [↩](#a1)
+2. <small id="f2"> University of A Coruña, Dept. of Information and Communications Technologies, A Coruña, Spain </small> [↩](#a2)
+
+
 ## Features
 
 - Encrypts FASTA files using AES encryption and a password derived from PBKDF2 key derivation function
