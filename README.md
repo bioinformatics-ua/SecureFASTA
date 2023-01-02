@@ -1,6 +1,9 @@
-# SecureFASTA
+<h1 align="center"><img src="logo/SecureFasta.png"
+alt="securefasta" height="200" border="0" /></h1>
+<p align="center"><b>The FASTA Security toolkit</b></p>
 
-SecureFASTA is a Python script that allows you to encrypt and decrypt FASTA files using AES encryption and Elliptic Curve Cryptography (ECC).
+
+SecureFASTA is a Python tool that allows you to encrypt and decrypt FASTA files using AES encryption and Elliptic Curve Cryptography (ECC).
 
 ## Team
   
