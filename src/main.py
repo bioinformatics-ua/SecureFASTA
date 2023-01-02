@@ -1,7 +1,27 @@
 import hashlib
 import os
+import random
+import string
 from Cryptodome.Cipher import AES
 from Cryptodome.Protocol.KDF import PBKDF2
+from Cryptodome.PublicKey import ECC
+
+def generate_random_password():
+    """Generates a random password."""
+    # Set the length of the password
+    length = 32
+
+    # Generate a random string of letters and digits
+    password = "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+    return password
+
+def encrypt_password(password, public_key):
+    """Encrypts a password using ECC with a public key."""
+    # Encrypt the password using the public key
+    encrypted_password = public_key.encrypt(password, 32)[0]
+
+    return encrypted_password
 
 def encrypt_secure_fasta(input_file, output_file, password):
     """Encrypts a FASTA file and writes the result to a SecureFASTA file."""
@@ -73,14 +93,47 @@ def generate_checksum(input_file):
 
         return checksum
 
+
 def main(args):
     if args.encrypt:
-        # Encrypt a FASTA file
-        encrypt_secure_fasta(args.input_file, args.output_file, args.password)
+        # Generate a random password
+        password = generate_random_password()
+
+        # Load the public key for the recipient
+        with open(args.public_key_file, "r") as f:
+            public_key_data = f.read()
+        public_key = ECC.import_key(public_key_data)
+
+        # Encrypt the password using the public key
+        encrypted_password = encrypt_password(password, public_key)
+
+        # Encrypt the FASTA file
+        encrypt_secure_fasta(args.input_file, args.output_file, password)
+
+        # Generate a checksum for the SecureFASTA file
+        checksum = generate_checksum(args.output_file)
+
+        # Write the encrypted password and checksum to a separate file
+        with open(args.key_file, "w") as f:
+            f.write(encrypted_password)
+            f.write(checksum)
     elif args.decrypt:
-        # Decrypt a SecureFASTA file
-        decrypt_secure_fasta(args.input_file, args.output_file, args.password)
-    elif args.checksum:
-        # Generate a checksum for a file
-        checksum = generate_checksum(args.input_file)
-        print(f"Checksum: {checksum}")
+        # Load the private key for the recipient
+        with open(args.private_key_file, "r") as f:
+            private_key_data = f.read()
+        private_key = ECC.import_key(private_key_data)
+
+        # Load the encrypted password and checksum from the key file
+        with open(args.key_file, "r") as f:
+            encrypted_password = f.read(64)
+            checksum = f.read(64)
+
+        # Decrypt the password using the private key
+        password = private_key.decrypt(encrypted_password)
+
+        # Validate the checksum
+        if generate_checksum(args.input_file) != checksum:
+            raise ValueError("Checksum validation failed")
+
+        # Decrypt the SecureFASTA file
+        decrypt_secure_fasta(args.input_file, args.output_file, password)
