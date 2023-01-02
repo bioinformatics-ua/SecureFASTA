@@ -46,9 +46,12 @@ Please cite the following, if you use SecureFASTA in your work:
 todo
 ```
 
+More details available [here](https://github.com/bioinformatics-ua/SecureFASTA/wiki).
+
 ## Issues
 Please let us know if there are any
 [issues](https://github.com/bioinformatics-ua/SecureFASTA/issues).
+
 
 ## License
 
