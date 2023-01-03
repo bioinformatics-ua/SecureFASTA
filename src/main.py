@@ -137,3 +137,5 @@ def main(args):
 
         # Decrypt the SecureFASTA file
         decrypt_secure_fasta(args.input_file, args.output_file, password)
+
+main()
