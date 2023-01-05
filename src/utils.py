@@ -1,5 +1,6 @@
 import random
 import string
+import os
 
 from Cryptodome.PublicKey import ECC
 
@@ -13,18 +14,26 @@ def write_fasta_file(filename, sequence):
         f.write(">Sequence\n")
         f.write(sequence)
 
-# Generate three synthetic FASTA files
-write_fasta_file("input1.fasta", generate_sequence(100))
-write_fasta_file("input2.fasta", generate_sequence(1000))
-write_fasta_file("input3.fasta", generate_sequence(10000))
+# Create the `data` folder if it doesn't already exist
+if not os.path.exists("data"):
+    os.makedirs("data")
+
+# Generate three synthetic FASTA files and save them in the `data` folder
+write_fasta_file("data/input1.fasta", generate_sequence(100))
+write_fasta_file("data/input2.fasta", generate_sequence(1000))
+write_fasta_file("data/input3.fasta", generate_sequence(10000))
+
+# Create the `keys` folder if it doesn't already exist
+if not os.path.exists("keys"):
+    os.makedirs("keys")
 
 # Generate a public/private key pair for ECC
 private_key = ECC.generate(curve="P-256")
 public_key = private_key.public_key()
 
-# Save the public and private keys to files
-with open("public_key.pem", "w") as f:
+# Save the public and private keys to files in the `keys` folder
+with open("keys/public_key.pem", "w") as f:
     f.write(public_key.export_key(format="PEM"))
 
-with open("private_key.pem", "w") as f:
+with open("keys/private_key.pem", "w") as f:
     f.write(private_key.export_key(format="PEM"))
