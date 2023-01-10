@@ -2,7 +2,7 @@ import random
 import string
 import os
 
-from Cryptodome.PublicKey import ECC
+from Crypto.PublicKey import RSA
 
 # Generate a random DNA or protein sequence
 def generate_sequence(length):
@@ -28,14 +28,14 @@ def main():
         os.makedirs("../keys")
 
     # Generate a public/private key pair for ECC
-    private_key = ECC.generate(curve="P-256")
+    private_key = RSA.generate(2048)
     public_key = private_key.public_key()
 
     # Save the public and private keys to files in the `keys` folder
-    with open("../keys/public_key.pem", "w") as f:
+    with open("../keys/public_key.pem", "wb") as f:
         f.write(public_key.export_key(format="PEM"))
 
-    with open("../keys/private_key.pem", "w") as f:
+    with open("../keys/private_key.pem", "wb") as f:
         f.write(private_key.export_key(format="PEM"))
 
 if __name__ == "__main__":
