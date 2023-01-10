@@ -6,16 +6,17 @@ alt="securefasta" height="200" border="0" /></h1>
 SecureFASTA is a Python tool that allows you to encrypt and decrypt FASTA files using AES encryption and Elliptic Curve Cryptography (ECC).
 
 ## Team
-  
+  * Dinis B. Cruz <sup id="a1">[1](#f1)</sup>
   * João R. Almeida<sup id="a1">[1](#f1)</sup><sup id="a2">[2](#f2)</sup>
   * Jorge M. Silva<sup id="a1">[1](#f1)</sup>
+  * José L. Oliveira<sup id="a1">[1](#f1)</sup>
 
 1. <small id="f1"> University of Aveiro, Dept. Electronics, Telecommunications and Informatics (DETI / IEETA), Aveiro, Portugal </small> [↩](#a1)
 2. <small id="f2"> University of A Coruña, Dept. of Information and Communications Technologies, A Coruña, Spain </small> [↩](#a2)
 
 
 ## Function
-<h1 align="left"><img src="SecureFasta.svg"
+<h1 align="left"><img src="logo/securefastaWorkflow.svg"
 alt="securefasta" height="400" border="0" /></h1>
 
 ## Features
@@ -45,6 +46,23 @@ To decrypt a SecureFASTA file:
 $ cd src/
 $ python main.py --decrypt --input-file secure_fasta.txt --output-file ../data/output.fasta --private-key-file ../keys/private_key.pem --key-file key.txt
 ```
+
+To create example FASTA files and the keys for testing:
+
+```
+$ cd src/
+$ python utils.py
+```
+
+For unit testing:
+
+```
+$ cd src/
+$ python unit_tests.py
+```
+
+
+
 ## Cite
 
 Please cite the following, if you use SecureFASTA in your work:
