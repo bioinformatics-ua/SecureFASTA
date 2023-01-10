@@ -14,6 +14,10 @@ SecureFASTA is a Python tool that allows you to encrypt and decrypt FASTA files 
 2. <small id="f2"> University of A Coruña, Dept. of Information and Communications Technologies, A Coruña, Spain </small> [↩](#a2)
 
 
+## Function
+<h1 align="left"><img src="SecureFasta.svg"
+alt="securefasta" height="400" border="0" /></h1>
+
 ## Features
 
 - Encrypts FASTA files using AES encryption and a password derived from PBKDF2 key derivation function
