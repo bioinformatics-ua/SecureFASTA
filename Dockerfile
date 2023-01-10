@@ -11,4 +11,4 @@ COPY src/unit_tests.py /app/unit_tests.py
 WORKDIR /app
 
 # Run the SecureFASTA script by default
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["python3"]

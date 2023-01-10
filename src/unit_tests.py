@@ -2,11 +2,33 @@ import os
 import random
 import string
 import unittest
-from Cryptodome.Cipher import AES
-from Cryptodome.Protocol.KDF import PBKDF2
-from Cryptodome.PublicKey import ECC
+
+from main import generate_random_password
+from main import encrypt_secure_fasta
+from main import decrypt_secure_fasta
+from main import generate_checksum
+from main import encrypt_with_rsa
+
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
 
 class TestSecureFASTA(unittest.TestCase):
+
+    def test_generate_checksum(self):
+        """Tests the generate_checksum method."""
+        # Write a random DNA or protein sequence to a FASTA file
+        with open("input.fasta", "w") as f:
+            f.write(">Sequence\n")
+            f.write("".join(random.choices("ACGT", k=1000)))
+
+        # Generate a checksum for the FASTA file
+        checksum = generate_checksum("input.fasta").hex()
+
+        # Check that the checksum is a valid hexadecimal string
+        self.assertTrue(all(c in string.hexdigits for c in checksum))
+
     def test_generate_random_password(self):
         """Tests the generate_random_password method."""
         # Set the length of the password
@@ -27,17 +49,18 @@ class TestSecureFASTA(unittest.TestCase):
         password = "".join(random.choices(string.ascii_letters + string.digits, k=32))
 
         # Generate a public key
-        private_key = ECC.generate(curve="P-256")
+        private_key = RSA.generate(2048)
         public_key = private_key.public_key()
 
         # Encrypt the password
-        encrypted_password = encrypt_password(password, public_key)
+        encrypted_password = encrypt_with_rsa(str.encode(password), public_key)
 
         # Check that the encrypted password is different from the original password
         self.assertNotEqual(encrypted_password, password)
 
         # Decrypt the password
-        decrypted_password = private_key.decrypt(encrypted_password)
+        cipher_rsa = PKCS1_OAEP.new(private_key)
+        decrypted_password = cipher_rsa.decrypt(encrypted_password).decode()
 
         # Check that the decrypted password is the same as the original password
         self.assertEqual(decrypted_password, password)
@@ -79,24 +102,22 @@ class TestSecureFASTA(unittest.TestCase):
         with open("input.fasta", "r") as f1, open("output.fasta", "r") as f2:
             self.assertEqual(f1.read(), f2.read())
 
-    def test_generate_checksum(self):
-        """Tests the generate_checksum method."""
-        # Write a random DNA or protein sequence to a FASTA file
-        with open("input.fasta", "w") as f:
-            f.write(">Sequence\n")
-            f.write("".join(random.choices("ACGT", k=1000)))
-
-        # Generate a checksum for the FASTA file
-        checksum = generate_checksum("input.fasta")
-
-        # Check that the checksum is a valid hexadecimal string
-        self.assertTrue(all(c in string.hexdigits for c in checksum))
-
     def tearDown(self):
         # Delete the test files
-        os.remove("input.fasta")
-        os.remove("secure_fasta.txt")
-        os.remove("output.fasta")
+        try:
+            os.remove("input.fasta")
+        except OSError:
+            pass
+
+        try:
+            os.remove("secure_fasta.txt")
+        except OSError:
+            pass
+
+        try:
+            os.remove("output.fasta")
+        except OSError:
+            pass
 
 if __name__ == "__main__":
     unittest.main()
