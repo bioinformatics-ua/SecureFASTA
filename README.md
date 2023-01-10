@@ -46,6 +46,23 @@ To decrypt a SecureFASTA file:
 $ cd src/
 $ python main.py --decrypt --input-file secure_fasta.txt --output-file ../data/output.fasta --private-key-file ../keys/private_key.pem --key-file key.txt
 ```
+
+To create example FASTA files and the keys for testing:
+
+```
+$ cd src/
+$ python utils.py
+```
+
+For unit testing:
+
+```
+$ cd src/
+$ python unit_tests.py
+```
+
+
+
 ## Cite
 
 Please cite the following, if you use SecureFASTA in your work:
