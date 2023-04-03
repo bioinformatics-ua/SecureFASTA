@@ -37,14 +37,14 @@ To encrypt a FASTA file:
 
 ```
 $ cd src/
-$ python main.py --encrypt --input-file ../data/input1.fasta --output-file secure_fasta.txt --public-key-file ../keys/public_key.pem --key-file key.txt
+$ python3 main.py --encrypt --input-file ../data/input1.fasta --output-file secure_fasta.txt --public-key-file ../keys/public_key.pem --key-file key.txt
 ```
 
 To decrypt a SecureFASTA file:
 
 ```
 $ cd src/
-$ python main.py --decrypt --input-file secure_fasta.txt --output-file ../data/output.fasta --private-key-file ../keys/private_key.pem --key-file key.txt
+$ python3 main.py --decrypt --input-file secure_fasta.txt --output-file ../data/output.fasta --private-key-file ../keys/private_key.pem --key-file key.txt
 ```
 
 To create example FASTA files and the keys for testing:
