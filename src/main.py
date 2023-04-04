@@ -10,16 +10,51 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 
+ITERATIONS = 100000
+
 def generate_random_password():
-    """Generates a random password."""
+    """
+        Generates a random password.
+    """
     # Set the length of the password
     password_length = 32
 
     # Generate a random string of letters and digits
     return secrets.token_urlsafe(password_length)
 
+def derive_key(password, iterations, salt=None):
+    """
+        Derives a 32 length key from a given password (bytes), returns the salt randomly generated
+    """
+    # Use PBKDF2 to derive a key from the password
+
+    if not salt:
+        salt = os.urandom(16)
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=iterations,
+    )
+
+    return salt, kdf.derive(password)
+
+def write_and_get_schema(file, information, encryptor):
+    """
+        Write information to a file and return a string with the starting position and finishing position of the now encrypted information
+    """
+
+    start = file.tell()
+    file.write(encryptor.update(information))
+    finish = file.tell()
+
+    return f"{start}:{finish};"
+
 def encrypt_with_rsa(word, public_key):
-    """Encrypts a password using ECC with a public key."""
+    """
+        Encrypts a password with a RSA public key.
+    """
     # Encrypt the password using the public key
     ciphertext = public_key.encrypt(
         word,
@@ -32,6 +67,9 @@ def encrypt_with_rsa(word, public_key):
     return ciphertext
 
 def decrypt_with_rsa(encrypted_word, private_key):
+    """
+        Decrypts a password with a RSA private key.
+    """
     plaintext = private_key.decrypt(
         encrypted_word,
         padding.OAEP(
@@ -42,141 +80,96 @@ def decrypt_with_rsa(encrypted_word, private_key):
     )
     return plaintext
 
-def encrypt_secure_fasta(input_file, output_file, password, mode):
+def encrypt_secure_fasta(input_file, output_file, key, mode):
     """Encrypts a FASTA file and writes the result to a SecureFASTA file."""
-    # Set the salt and number of iterations for the PBKDF2 key derivation function
-    salt = os.urandom(16)
-    iterations = 10000
 
-    # Use PBKDF2 to derive a key from the password
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=iterations,
-    )
-
-    key = kdf.derive(password)
-
+    # Generate random iv
     iv = os.urandom(16)
 
     # Initialize the AES cipher in cipher block chaining (OFB) mode
     cipher = Cipher(algorithms.AES(key), modes.OFB(iv))
     encryptor = cipher.encryptor()
 
-    encrypted_data = bytes()
     schema = ""
+
+    output_file = open(output_file, "wb")
+    input_file = open(input_file, "rb")
 
     if mode == "headers":
 
-        with open(input_file, "rb") as input_file:
-            with open(output_file, "wb") as output_file:
-                # Read the data from the FASTA file
-                for line in input_file:
-                    if line[0] == 62:
-                        output_file.write(b">")
-                        schema += str(output_file.tell()) + ":" 
-                        output_file.write(encryptor.update(line[1:]))
-                        schema += str(output_file.tell()) + ";" 
-                        output_file.write(b"\n")
-                    else:
-                        output_file.write(line)
+        for line in input_file:
+
+            # If line starts with ">" (header)
+            if line[0] == 62:
+                output_file.write(b">")
+                schema += write_and_get_schema(output_file, line[1:], encryptor)
+                output_file.write(b"\n")
+            else:
+                output_file.write(line)
 
     elif mode == "sequences":
+        buffer = bytes()
+        
+        for line in input_file:
 
-        with open(input_file, "rb") as input_file:
-            with open(output_file, "wb") as output_file:
-                # Read the data from the FASTA file
-                tmp_buffer = bytes()
-                
-                for line in input_file:
-                    if line[0] == 62:
-                        if tmp_buffer != bytes():
-                            schema += str(output_file.tell()) + ":" 
-                            output_file.write(encryptor.update(tmp_buffer))
-                            schema += str(output_file.tell()) + ";" 
-                            output_file.write(b"\n")
-                            tmp_buffer = bytes()
-                        output_file.write(line)
-                    else:
-                        tmp_buffer += line
+            # If line starts with ">", write all previous information stored (sequences)
+            if line[0] == 62:
+                if buffer != bytes():
+                    schema += write_and_get_schema(output_file, buffer, encryptor)
+                    output_file.write(b"\n")
+                    buffer = bytes()
+                output_file.write(line)
+            else:
+                # Buffer information until all the sequence is retreived
+                buffer += line
 
-                schema += str(output_file.tell()) + ":" 
-                output_file.write(encryptor.update(tmp_buffer))
-                schema += str(output_file.tell()) + ";"  
+        # Write the last sequence
+        schema += write_and_get_schema(output_file, buffer, encryptor) 
     
     else:
-
-        # Read the DNA or protein sequence data from the input file
-        with open(input_file, "rb") as input_file:
-            with open(output_file, "wb") as output_file:
-                # Read the data from the FASTA file
-                data = input_file.read()
-
-                # Encrypt the data using the AES cipher
-                output_file.write(encryptor.update(data) + encryptor.finalize())
         
-        schema = ":"
+        schema += write_and_get_schema(output_file, input_file.read(), encryptor) 
+    
+    output_file.close()
+    input_file.close()
 
-    return salt, iterations, iv, schema
+    return iv, schema
 
-def decrypt_secure_fasta(input_file, output_file, password, salt, iterations, iv, mode, schema):
+def decrypt_secure_fasta(input_file, output_file, key, iv, schema):
     """Decrypts a SecureFASTA file and writes the result to a FASTA file."""
-    # Open the input file for reading
-    with open(input_file, "rb") as f:
-        # Read the salt, iterations, and IV from the file
+    # Initialize the AES cipher in cipher block chaining (OFB) mode
+    cipher = Cipher(algorithms.AES(key), modes.OFB(iv))
+    decryptor = cipher.decryptor()
 
-        # Use PBKDF2 to derive a key from the password
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=iterations,
-        )
+    output_file = open(output_file, "wb")
+    input_file = open(input_file, "rb")
 
-        key = kdf.derive(password)
+    # Mapping the schema to tuple values of start and finish of encryption parts
+    schema = [tuple(map(int, s.split(":"))) for s in schema.split(";")[:-1]]
 
-        # Initialize the AES cipher in cipher block chaining (OFB) mode
-        cipher = Cipher(algorithms.AES(key), modes.OFB(iv))
-        decryptor = cipher.decryptor()
+    current_pos = 0
 
-        data = bytes()
+    # Read information and decrypt acording to schema
+    for start, end in schema:
+        # Read information from the current position until the start of a new block of encrypted data
+        input_file.seek(current_pos)
+        output_file.write(input_file.read(start - current_pos))
 
-        if schema == ":":   
-            data = f.read()
+        # Read information from the start of a encrypted block and decrypt it
+        input_file.seek(start)
+        output_file.write(decryptor.update(input_file.read(end - start)))
+        current_pos = end + 1
 
-            # Encrypt the data using the AES cipher
-            data = decryptor.update(data) + decryptor.finalize()
+    # Read and write whatever is left from the file as not encrypted information
+    output_file.write(input_file.read()[1:])
 
-        else:
+    output_file.close()
+    input_file.close()
 
-            schema = [tuple(map(int, s.split(":"))) for s in schema.split(";")[:-1]]
-
-            current_pos = 0
-
-            with open(input_file, "rb") as input_file:
-                # Read the data from the FASTA file
-                for s in schema:
-                    print(s)
-                    start = s[0]
-                    end = s[1]
-                    f.seek(current_pos)
-                    data += f.read(start-current_pos)
-                    f.seek(start)
-                    data += decryptor.update(f.read(end-start))
-                    current_pos = end + 1
-
-            data += f.read()[1:]
-
-        # Write the decrypted data to the output file
-        with open(output_file, "wb") as output_file:
-            output_file.write(data)
 
 def generate_checksum(input_file):
     """Generates a checksum for a file using the SHA-256 hash function."""
-    # Open the input file for reading
     with open(input_file, "rb") as f:
-        # Read the data from the file
         data = f.read()
 
     digest = hashes.Hash(hashes.SHA256())
@@ -205,11 +198,10 @@ def parse_args():
     parser.add_argument("-d", "--decrypt", action="store_true", help="decrypt the input file")
 
     # Add an argument to specify which mode to use
-    parser.add_argument("-m", "--mode", required=True, help="mode to encrypt file (Not needed for decryption, if passed, argument is ignored)")
+    parser.add_argument("-m", "--mode", required=False, help="mode to encrypt file (Not needed for decryption, if passed, argument is ignored)")
 
     # Parse the command-line arguments
     args = parser.parse_args()
-    print(args)
     return args
 
 def main():
@@ -225,23 +217,23 @@ def main():
             public_key = serialization.load_pem_public_key(
                 f.read()
             )
-
-        # Encrypt the password using the public key
-        encrypted_password = encrypt_with_rsa(str.encode(password), public_key)
+        # Derive key from random string
+        _, key = derive_key(str.encode(password), ITERATIONS)
 
         # Encrypt the FASTA file
-        salt, iterations, iv, schema = encrypt_secure_fasta(args.input_file, args.output_file, str.encode(password), args.mode)
+        iv, schema = encrypt_secure_fasta(args.input_file, args.output_file, key, args.mode)
+
+        # Encrypt the key using the public key
+        encrypted_key = encrypt_with_rsa(key, public_key)
 
         # Generate a checksum for the SecureFASTA file
         checksum = generate_checksum(args.output_file)
         encrypted_checksum = encrypt_with_rsa(checksum, public_key)
 
-        # Write the encrypted password and checksum to a separate file
+        # Write the encrypted key and checksum to a separate file, along with the iv and schema of encryption
         with open(args.key_file, "wb") as f:
-            f.write(salt)
-            f.write(iterations.to_bytes(8,'big'))
             f.write(iv)
-            f.write(encrypted_password)
+            f.write(encrypted_key)
             f.write(encrypted_checksum)
             f.write(schema.encode())
 
@@ -253,17 +245,15 @@ def main():
                 password=None,
             )
 
-        # Load the encrypted password and checksum from the key file
+        # Load the encrypted key and checksum from the key file
         with open(args.key_file, "rb") as f:
-            salt = f.read(16)
-            iterations = int.from_bytes(f.read(8),'big')
             iv = f.read(16)
-            encrypted_password = f.read(256)
+            encrypted_key = f.read(256)
             encrypted_checksum = f.read(256)
             schema = f.read().decode()
 
-        # Decrypt the password using the private key
-        password = decrypt_with_rsa(encrypted_password, private_key)
+        # Decrypt the key using the private key
+        key = decrypt_with_rsa(encrypted_key, private_key)
         checksum = decrypt_with_rsa(encrypted_checksum, private_key)
 
         # Validate the checksum
@@ -271,7 +261,7 @@ def main():
             raise ValueError("Checksum validation failed")
 
         # Decrypt the SecureFASTA file
-        decrypt_secure_fasta(args.input_file, args.output_file, password, salt, iterations, iv, args.mode, schema)
+        decrypt_secure_fasta(args.input_file, args.output_file, key, iv, schema)
 
 if __name__ == "__main__":
     main()
