@@ -50,9 +50,13 @@ $ python3 main.py --decrypt --input-file secure_fasta.txt --output-file ../data/
 
 ### Run with Docker 
 
+To encrypt:
+
 ```
 docker run -v $(pwd)/data:/data -v $(pwd)/keys:/keys -v $(pwd)/output:/output secure-fasta  main.py --encrypt --input-file /data/input4.fasta --output-file /output/secure_fasta.enc --public-key-file /keys/public_key.pem --key-file /output/key.bin
 ```
+
+To decrypt:
 
 ```
 docker run -v $(pwd)/data:/data -v $(pwd)/keys:/keys -v $(pwd)/output:/output secure-fasta  main.py --decrypt --input-file /output/secure_fasta.enc --output-file /output/output.fasta --private-key-file /keys/private_key.pem --key-file /output/key.bin
