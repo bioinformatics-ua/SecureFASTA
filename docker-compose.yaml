@@ -3,6 +3,6 @@ services:
   secure-fasta:
     build: .
     volumes:
-      - .:/app
+      - .:/secure-fasta
     entrypoint: python
     command: main.py

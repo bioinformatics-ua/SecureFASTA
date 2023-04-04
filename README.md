@@ -22,18 +22,19 @@ alt="securefasta" height="400" border="0" /></h1>
 ## Features
 
 - Encrypts FASTA files using AES encryption and a password derived from PBKDF2 key derivation function
-- Encrypts the password using ECC with a public and private key
+- Encrypts the password using RSA with a public and private key
 - Writes the encrypted password and checksum to a separate file
 - Decrypts SecureFASTA files using the private key and validates the checksum before decryption
+- Allows for partial encryption, all headers are encrypted, all sequences are encrypted or everything is encrypted
 
 ## Requirements
 
 - Python 3.6 or higher
-- Cryptodome (https://pypi.org/project/pycryptodome/)
+- [pyca/cryptography](https://cryptography.io/en/latest/)
 
 ## Usage
 
-To encrypt a FASTA file:
+### To encrypt a FASTA file
 
 ```
 $ cd src/
@@ -47,7 +48,28 @@ $ cd src/
 $ python3 main.py --decrypt --input-file secure_fasta.txt --output-file ../data/output.fasta --private-key-file ../keys/private_key.pem --key-file key.txt
 ```
 
-To create example FASTA files and the keys for testing:
+### Run with Docker 
+
+```
+docker run -v $(pwd)/data:/data -v $(pwd)/keys:/keys -v $(pwd)/output:/output secure-fasta  main.py --encrypt --input-file /data/input4.fasta --output-file /output/secure_fasta.enc --public-key-file /keys/public_key.pem --key-file /output/key.bin
+```
+
+```
+docker run -v $(pwd)/data:/data -v $(pwd)/keys:/keys -v $(pwd)/output:/output secure-fasta  main.py --decrypt --input-file /output/secure_fasta.enc --output-file /output/output.fasta --private-key-file /keys/private_key.pem --key-file /output/key.bin
+```
+
+
+### For different modes
+
+Add flag --mode with the self-explanatory values:
+
+- "headers"
+- "sequences"
+- "all"
+
+Note: If no mode, or an unkown mode is given, the solution defaults to full encryption
+
+### To create example FASTA files and the keys for testing
 
 ```
 $ cd src/
