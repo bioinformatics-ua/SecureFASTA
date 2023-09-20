@@ -25,7 +25,7 @@ def generate_random_password():
 
 def derive_key(password, iterations, salt=None):
     """
-        Derives a 32 length key from a given password (bytes), returns the salt randomly generated
+        Derives a 32 length key from a given password (bytes), also returns a salt randomly generated
     """
     # Use PBKDF2 to derive a key from the password
 
@@ -43,7 +43,7 @@ def derive_key(password, iterations, salt=None):
 
 def write_and_get_schema(file, information, encryptor):
     """
-        Write information to a file and return a string with the starting position and finishing position of the now encrypted information
+        Writes encrypted information to a file and return a string with the starting position and finishing position of the now encrypted information
     """
     start = file.tell()
     file.write(encryptor.update(information))
@@ -56,7 +56,7 @@ def encrypt_with_rsa(word, public_key):
         Encrypts a password with a RSA public key.
     """
     # Encrypt the password using the public key
-    ciphertext = public_key.encrypt(
+    return public_key.encrypt(
         word,
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -64,13 +64,12 @@ def encrypt_with_rsa(word, public_key):
             label=None
         )
     )
-    return ciphertext
-
+    
 def decrypt_with_rsa(encrypted_word, private_key):
     """
         Decrypts a password with a RSA private key.
     """
-    plaintext = private_key.decrypt(
+    return private_key.decrypt(
         encrypted_word,
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -78,51 +77,62 @@ def decrypt_with_rsa(encrypted_word, private_key):
             label=None
         )
     )
-    return plaintext
 
 def gzip_compress(input_file, output_file):
+    """
+        Compresses a file using gzip
+    """
 
     data = open(input_file,"rb").read()
     bindata = bytearray(data)
+
     with gzip.open(output_file, "wb") as compressed:
         compressed.write(bindata)
 
 def gzip_uncompress(input_file, output_file):
+    """
+        Decompresses a file using gzip
+    """
 
     output = open(output_file,"wb")
+
     with gzip.open(input_file, "rb") as compressed:
         bindata = compressed.read()
+
     output.write(bindata)
     output.close()
 
-
-def compress_and_encrypt(input_file, output_file, key, file_type):
+def compress_and_encrypt(input_file, output_file, key):
+    """
+        Compresses and fully encrypts a genomic file using gzip
+    """
 
     schema = ""
+    tmp_file = str(uuid.uuid4()) + ".co"
 
-    if file_type == "vcf" or file_type == "bam":
+    gzip_compress(input_file, tmp_file)
 
-        tmp_file = str(uuid.uuid4()) + ".gzip"
-        gzip_compress(input_file, tmp_file)
-        iv, encryptor, output_file, after_compression_file = setup_encryption(key, tmp_file, output_file)
+    iv, encryptor, output_file, after_compression_file = setup_encryption(key, tmp_file, output_file)
 
-        schema += write_and_get_schema(output_file, after_compression_file.read(), encryptor) 
-        
-        # Finish
-        output_file.close()
+    schema += write_and_get_schema(output_file, after_compression_file.read(), encryptor) 
+    
+    # Finish
+    output_file.close()
 
-        # Remove temporary file
-        os.remove(tmp_file)
+    # Remove temporary file
+    os.remove(tmp_file)
         
     return iv, schema
 
-def decrypt_and_uncompress(input_file, output_file, key, iv, schema, file_type):
+def decrypt_and_uncompress(input_file, output_file, key, iv, schema):
+    """
+        Decrypts and uncompresses a genomic file using gzip
+    """
 
-    if file_type == "vcf" or file_type == "bam":
+    tmp_file = str(uuid.uuid4()) + ".co"
+    decrypt(input_file, tmp_file, key, iv, schema)
 
-        tmp_file = str(uuid.uuid4()) + ".gzip"
-        decrypt(input_file, tmp_file, key, iv, schema)
-        gzip_uncompress(tmp_file, output_file)
+    gzip_uncompress(tmp_file, output_file)
 
     # Remove temporary file
     os.remove(tmp_file)
@@ -165,9 +175,10 @@ def encrypt_headers(input_file, output_file, schema, encryptor, markers):
 
             # Checks if line starts with any of the markers that indicates an header
             if line[0] in markers:
-                output_file.write(b"@")
+                output_file.write(chr(line[0]).encode())
                 schema += write_and_get_schema(output_file, line[1:], encryptor)
                 output_file.write(b"\n")
+
             else:
                 output_file.write(line)
 
@@ -188,6 +199,7 @@ def encrypt_without_markers(input_file, output_file, schema, encryptor, markers)
                 output_file.write(b"\n")
                 buffer = bytes()
             output_file.write(line)
+
         else:
             # Buffer information until all the sequence is retreived
             buffer += line
@@ -213,6 +225,7 @@ def encrypt_with_counter(input_file, output_file, schema, encryptor, c):
                 output_file.write(b"\n")
                 buffer = bytes()
             output_file.write(line)
+
         else:
             # Buffer information until all the sequence is retreived
             buffer += line
@@ -236,18 +249,15 @@ def encrypt_secure_fastq(input_file, output_file, key, mode):
     markers = [64, 43]
 
     if mode == "headers":
-
         schema = encrypt_headers(input_file, output_file, schema, encryptor, markers)
 
     elif mode == "sequences":
-        
         schema = encrypt_without_markers(input_file, output_file, schema, encryptor, markers)
     
     elif mode == "noquality":
-
         schema = encrypt_with_counter(input_file, output_file, schema, encryptor, 4)
+
     else:
-        
         schema += write_and_get_schema(output_file, input_file.read(), encryptor) 
     
     # Finish
@@ -285,15 +295,12 @@ def encrypt_secure_vcf(input_file, output_file, key, mode):
     markers = [35]
 
     if mode == "headers":
-
         schema = encrypt_headers(input_file, output_file, schema, encryptor, markers)
 
     elif mode == "sequences":
-        
         schema = encrypt_without_markers(input_file, output_file, schema, encryptor, markers)
     
     else:
-        
         schema += write_and_get_schema(output_file, input_file.read(), encryptor) 
     
     # Finish
@@ -314,15 +321,12 @@ def encrypt_secure_fasta(input_file, output_file, key, mode):
     markers = [62]
 
     if mode == "headers":
-
         schema = encrypt_headers(input_file, output_file, schema, encryptor, markers)
 
     elif mode == "sequences":
-        
         schema = encrypt_without_markers(input_file, output_file, schema, encryptor, markers)
     
     else:
-        
         schema += write_and_get_schema(output_file, input_file.read(), encryptor) 
     
     # Finish
@@ -430,11 +434,9 @@ def main():
         _, key = derive_key(str.encode(password), ITERATIONS)
 
         if args.mode == "compression":
-
-            iv, schema = compress_and_encrypt(args.input_file, args.output_file, key, args.file_type)
+            iv, schema = compress_and_encrypt(args.input_file, args.output_file, key)
 
         elif args.mode == "split":
-            
             encryption_function = get_encryption_function(args.file_type)
             iv, schema = encryption_function(args.input_file, args.output_file, key, args.specification)
 
@@ -486,11 +488,9 @@ def main():
             raise ValueError("Checksum validation failed")
 
         if mode == "compression":
-
-            decrypt_and_uncompress(args.input_file, args.output_file, key, iv, schema, file_type)
+            decrypt_and_uncompress(args.input_file, args.output_file, key, iv, schema)
 
         elif mode == "split":
-
             decrypt(args.input_file, args.output_file, key, iv, schema)
 
 if __name__ == "__main__":
