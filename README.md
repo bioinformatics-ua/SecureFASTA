@@ -42,6 +42,10 @@ alt="securefasta" height="400" border="0" /></h1>
 
 The script has 2 commands: `encrypt` or `decrypt` which are self explanatory
 
+### Keys
+
+- The tool will need RSA keys in PEM format
+
 ### Flags available
 
 - `input-file`: The file to be encrypted or decrypted
