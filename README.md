@@ -3,7 +3,7 @@ alt="securefasta" height="200" border="0" /></h1>
 <p align="center"><b>The FASTA Security toolkit</b></p>
 
 
-SecureFASTA is a Python tool that allows you to encrypt and decrypt FASTA files using AES encryption and Elliptic Curve Cryptography (ECC).
+SecureFASTA is a Python tool that allows you to encrypt and decrypt Fasta, Fastq, Bam and VCF files using AES encryption and RSA Cryptography.
 
 ## Team
   * Dinis B. Cruz <sup id="a1">[1](#f1)</sup>
@@ -19,91 +19,119 @@ SecureFASTA is a Python tool that allows you to encrypt and decrypt FASTA files 
 <h1 align="left"><img src="logo/securefastaWorkflow.svg"
 alt="securefasta" height="400" border="0" /></h1>
 
-## Features
+## How it works
 
-- Encrypts FASTA files using AES encryption and a password derived from PBKDF2 key derivation function
-- Encrypts the password using RSA with a public and private key
-- Writes the encrypted password and checksum to a separate file
-- Decrypts SecureFASTA files using the private key and validates the checksum before decryption
-- Allows for partial encryption, all headers are encrypted, all sequences are encrypted or everything is encrypted
+- There exists 2 modes for encryption: `compression` and `split`
+  - The first allows for the compression of the file using gzip and later full encryption of the information.
+  - The second allows for the partial encryption of information from genomic files based on the file type.
+- Encryption and decryption is performed using a PGP strategy where the key of symmetric encryption is stored in a separate file ciphered with the public key of the receiver.
+- The key file contains further information for decryption. This information includes:
+  - Ciphered checksum for integrity validation
+  - Ciphered filetype for which is not currently used but can be necessary if other compression methods bcome available
+  - Ciphered mode for decryption since the solution must know if it must decompress the information after decryption
+  - The iv used for encryption (This information can be public)
+  - The schema of encryption. This tells the tool where ciphered fields can be found (This information can also be public)
 
 ## Requirements
 
 - Python 3.6 or higher
-- [pyca/cryptography](https://cryptography.io/en/latest/)
+- Requirements in requirements.txt
+- Requirements in requirements-test.txt if testing is performed
 
 ## Usage
 
-### To encrypt a FASTA file
+The script has 2 commands: `encrypt` or `decrypt` which are self explanatory
+
+### Flags available
+
+- `input-file`: The file to be encrypted or decrypted
+- `output-file`: The file to place information (encrypted or decrypted)
+- `key-file`: The file to place the key, checksum, schema, mode and iv information
+- `public-key-file`: Public key of the receiver of information for RSA encryption (only needed in encryption)
+- `private-key-file`: Private key of the receiver of information for RSA decryption (only needed in decryption)
+- `mode`: Mode of exeuction for the tool. `compression` compresses the file and encrypts it, `split` only encrypts the file but allows for customization on which information to be ciphered (Only needed for encryption).
+- `specification`: Only useful for `split` mode. Allows for the specification of which information is to be ciphered (only needed for encryption).
+- `file-type`:  Indicates which type of file is going to be encrypted (Fasta, Fastq, VCF or Bam) (onluneeded for encryption).
+
+### Specifications Available
+
+| File  | Headers only  |  Sequences |  Sequences w/o Quality Scores | All |
+|---|---|---|---|---|
+| Fasta  | ✅  |  ✅  | - | ✅   |
+| Fastq  |  ✅  |  ✅  | ✅   | ✅   |
+| VCF  |  ✅  |  ✅  | - |  ✅  |
+| Bam | - | - | - | ✅  |
+
+### Example of execution
+
+Encryption of only the headers of a fasta file:
 
 ```
 $ cd src/
-$ python3 main.py --encrypt --input-file ../data/input1.fasta --output-file secure_fasta.txt --public-key-file ../keys/public_key.pem --key-file key.txt
+$ python3 main.py encrypt \
+          --input-file ../data/input.fasta \
+          --output-file ../output/fasta.enc \
+          --public-key-file ../keys/public_key.pem \
+          --key-file ../output/key.bin \
+          --mode split \
+          --specification headers \
+          --file_type fasta
 ```
 
-To decrypt a SecureFASTA file:
+Decryption of the same file:
 
 ```
 $ cd src/
-$ python3 main.py --decrypt --input-file secure_fasta.txt --output-file ../data/output.fasta --private-key-file ../keys/private_key.pem --key-file key.txt
+$ python3 main.py decrypt \
+          --input-file ../output/fasta.enc \
+          --output-file ../output/output.fasta \
+          --private-key-file ../keys/private_key.pem \
+          --key-file ../output/key.bin
 ```
 
 ### Run with Docker 
 
-To encrypt:
+To encrypt (Same example as above):
 
 ```
-docker run 
-    -v $(pwd)/data:/data 
-    -v $(pwd)/keys:/keys 
-    -v $(pwd)/output:/output 
-    secure-fasta main.py --encrypt 
-    --input-file /data/input4.fasta 
-    --output-file /output/secure_fasta.enc 
-    --public-key-file /keys/public_key.pem 
-    --key-file /output/key.bin
+docker run \
+      -v ${PWD}/data:/data \
+      -v ${PWD}/output:/output \
+      -v ${PWD}/keys:/keys \
+      <image_name> encrypt \
+      --input-file /data/input.fasta \
+      --output-file /output/fasta.enc  \
+      --public-key-file /keys/public_key.pem \
+      --key-file /output/key.bin \
+      --mode split \
+      --specification headers \
+      --file_type fasta
 ```
 
 To decrypt:
 
 ```
-docker run 
-    -v $(pwd)/data:/data 
-    -v $(pwd)/keys:/keys 
-    -v $(pwd)/output:/output 
-    secure-fasta main.py --decrypt 
-    --input-file /output/secure_fasta.enc 
-    --output-file /output/output.fasta 
-    --private-key-file /keys/private_key.pem 
+docker run \
+    -v ${PWD}/data:/data \
+    -v ${PWD}/output:/output \
+    -v ${PWD}/keys:/keys \
+    something decrypt \
+    --input-file /output/fasta.enc \
+    --output-file /output/output.fasta  \
+    --private-key-file /keys/private_key.pem \
     --key-file /output/key.bin
 ```
 
+### Testing
 
-### For different modes
+The test with perform all possible combinations of mode, specification and filetype available. The before and after files are compared for equality and the intermediate files can be inspected visually. 
 
-Add flag --mode with the self-explanatory values:
-
-- "headers"
-- "sequences"
-- "all"
-
-Note: If no mode, or an unkown mode is given, the solution defaults to full encryption
-
-### To create example FASTA files and the keys for testing
+Note: Create a test directory for this example to ensure it works. This also helps with the organization as many forders and files will be created.
 
 ```
 $ cd src/
-$ python utils.py
+$ pytest tests.py
 ```
-
-For unit testing:
-
-```
-$ cd src/
-$ python unit_tests.py
-```
-
-
 
 ## Cite
 
@@ -118,7 +146,6 @@ More details available [here](https://github.com/bioinformatics-ua/SecureFASTA/w
 ## Issues
 Please let us know if there are any
 [issues](https://github.com/bioinformatics-ua/SecureFASTA/issues).
-
 
 ## License
 

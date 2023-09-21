@@ -1,8 +1,0 @@
-version: '3'
-services:
-  secure-fasta:
-    build: .
-    volumes:
-      - .:/secure-fasta
-    entrypoint: python
-    command: main.py

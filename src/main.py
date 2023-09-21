@@ -397,11 +397,11 @@ def parse_args():
     encryption_subparser.add_argument("--input-file", required=True, help="The input file to encrypt or decrypt")
     encryption_subparser.add_argument("--output-file", required=True, help="The output file to write the encrypted or decrypted data to")
 
-    encryption_subparser.add_argument("--public-key-file", required=False, help="The file containing the public key for encryption")
-    encryption_subparser.add_argument("--key-file", required=False, help="The to output the key and checksum information")
+    encryption_subparser.add_argument("--public-key-file", required=True, help="The file containing the public key for encryption")
+    encryption_subparser.add_argument("--key-file", required=True, help="The to output the key and checksum information")
 
-    encryption_subparser.add_argument("-m", "--mode", required=False, help="Select either compression mode (compresses the file and encrypts its contents) or split mode (which allows for the encryption of different parts of each file)")
-    encryption_subparser.add_argument("-f", "--file_type", required=False, help="Select the file type the tool will apply (fasta, fastq, vcf, bam)")
+    encryption_subparser.add_argument("-m", "--mode", required=True, help="Select either compression mode (compresses the file and encrypts its contents) or split mode (which allows for the encryption of different parts of each file)")
+    encryption_subparser.add_argument("-f", "--file_type", required=True, help="Select the file type the tool will apply (fasta, fastq, vcf, bam)")
     encryption_subparser.add_argument("-s", "--specification", required=False, help="Select the specification for the encryption/decryption")
 
     # Create decryption subparser
@@ -410,8 +410,8 @@ def parse_args():
     decryption_subparser.add_argument("--input-file", required=True, help="The input file to encrypt or decrypt")
     decryption_subparser.add_argument("--output-file", required=True, help="The output file to write the encrypted or decrypted data to")
 
-    decryption_subparser.add_argument("--key-file", required=False, help="The to output the key and checksum information")
-    decryption_subparser.add_argument("--private-key-file", required=False, help="The file containing the private key for decryption")
+    decryption_subparser.add_argument("--key-file", required=True, help="The to output the key and checksum information")
+    decryption_subparser.add_argument("--private-key-file", required=True, help="The file containing the private key for decryption")
 
     # Parse the command-line arguments
     args = parser.parse_args()

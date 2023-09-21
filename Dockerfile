@@ -1,16 +1,20 @@
 FROM python:3.9-slim
 
-# Install Cryptodome
-RUN pip install --no-cache-dir cryptography==40.0.1
-
 RUN useradd -ms /bin/bash securefasta
 
-# Copy the SecureFASTA script and unit tests
-COPY src/main.py /home/securefasta/main.py
-COPY src/unit_tests.py /home/securefasta/unit_tests.py
+# Copy the main script and unit tests
+COPY src/main.py /app/main.py
+COPY src/tests.py /app/tests.py
+
+COPY requirements.txt /app/requirements.txt
+COPY requirements-test.txt /app/requirements-test.txt
+
+# Install requirements
+RUN pip install -r /app/requirements.txt
+RUN pip install -r /app/requirements-test.txt
 
 # Set the working directory
-WORKDIR /home/securefasta
+WORKDIR /app
 
 # Run the SecureFASTA script by default
-ENTRYPOINT ["python3"]
+ENTRYPOINT ["python3", "main.py"]

@@ -6,6 +6,10 @@ STANDARD_ENC_CMD = "python3 main.py encrypt --input-file {input_file} --output-f
 
 STANDARD_DEC_CMD = "python3 main.py decrypt --input-file {input_file} --output-file {output_file} --private-key-file {private_key_file} --key-file {key_file}"
 
+input_dir = "../data"
+output_dir = "../test"
+keys_dir = "../keys"
+
 def generate_combinations_encryption() -> List[pytest.param]:
 
     files = ["fasta", "fastq", "vcf", "bam"]
@@ -18,11 +22,11 @@ def generate_combinations_encryption() -> List[pytest.param]:
         for s in specifications[idx]:
 
             test_name = f + "_" + s
-            os.system(f"mkdir ../test/{test_name}")
+            os.system(f"mkdir {output_dir}/{test_name}")
 
             combinations.append((
-                f"../data/input.{f}", f"../test/{test_name}/output.{s}.{f}.enc", f"../test/{test_name}/output.{s}.{f}.enc", f"../test/{test_name}/output.{s}.{f}",
-                "../keys/public_key.pem", "../keys/private_key.pem", f"../test/{test_name}/key.{s}.{f}",
+                f"{input_dir}/input.{f}", f"{output_dir}/{test_name}/output.{s}.{f}.enc", f"{output_dir}/{test_name}/output.{s}.{f}.enc", f"{output_dir}/{test_name}/output.{s}.{f}",
+                f"{keys_dir}/public_key.pem", f"{keys_dir}/private_key.pem", f"{output_dir}/{test_name}/key.{s}.{f}",
                 mode, s, f
             )) 
 
@@ -37,11 +41,11 @@ def generate_combinations_compression() -> List[pytest.param]:
 
     for f in files:
         test_name = f"compression_{f}"
-        os.system(f"mkdir ../test/{test_name}")
+        os.system(f"mkdir {output_dir}/{test_name}")
 
         combinations.append((
-            f"../data/input.{f}", f"../test/{test_name}/output.{f}.co", f"../test/{test_name}/output.{f}.co", f"../test/{test_name}/output.{f}",
-            "../keys/public_key.pem", "../keys/private_key.pem", f"../test/{test_name}/key.{f}",
+            f"{input_dir}/input.{f}", f"{output_dir}/{test_name}/output.{f}.co", f"{output_dir}/{test_name}/output.{f}.co", f"{output_dir}/{test_name}/output.{f}",
+            f"{keys_dir}/public_key.pem", f"{keys_dir}/private_key.pem", f"{output_dir}/{test_name}/key.{f}",
             mode, f
         )) 
 
