@@ -194,10 +194,12 @@ def encrypt_without_markers(input_file, output_file, schema, encryptor, markers)
 
         # If line starts with a header marker, write all previous information stored (sequences)
         if line[0] in markers:
+            print(line[0])
             if buffer != bytes():
                 schema += write_and_get_schema(output_file, buffer, encryptor)
                 output_file.write(b"\n")
                 buffer = bytes()
+            print(line)
             output_file.write(line)
 
         else:
@@ -439,6 +441,10 @@ def main():
         elif args.mode == "split":
             encryption_function = get_encryption_function(args.file_type)
             iv, schema = encryption_function(args.input_file, args.output_file, key, args.specification)
+        
+        else:
+            print("Invalid mode!")
+            exit(1)
 
         # Encrypt the key using the public key
         encrypted_key = encrypt_with_rsa(key, public_key)
@@ -453,11 +459,11 @@ def main():
 
         # Write the encrypted key, checksum, filetype and mode to a separate file, along with the iv and schema of encryption
         with open(args.key_file, "wb") as f:
-            f.write(iv)
             f.write(encrypted_key)
             f.write(encrypted_checksum)
             f.write(encrypted_filetype)
             f.write(encrypted_mode)
+            f.write(iv)
             f.write(schema.encode())
 
     else:
@@ -470,17 +476,16 @@ def main():
 
         # Load the encrypted key, checksum, filetype and mode from the key file, along with the iv and schema
         with open(args.key_file, "rb") as f:
-            iv = f.read(16)
             encrypted_key = f.read(256)
             encrypted_checksum = f.read(256)
-            encrypted_filetype = f.read(256)
+            f.read(256) # Filetype is never used in decryption because the strategy is based on the schema and file independent
             encrypted_mode = f.read(256)
+            iv = f.read(16)
             schema = f.read().decode()
 
         # Decrypt the information using the private key
         key = decrypt_with_rsa(encrypted_key, private_key)
         checksum = decrypt_with_rsa(encrypted_checksum, private_key)
-        file_type = decrypt_with_rsa(encrypted_filetype, private_key).decode()
         mode = decrypt_with_rsa(encrypted_mode, private_key).decode()
 
         # Validate the checksum
@@ -492,6 +497,10 @@ def main():
 
         elif mode == "split":
             decrypt(args.input_file, args.output_file, key, iv, schema)
+        
+        else:
+            print("Invalid mode!")
+            exit(1)
 
 if __name__ == "__main__":
     main()
